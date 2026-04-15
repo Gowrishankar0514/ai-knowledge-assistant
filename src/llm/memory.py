@@ -1,4 +1,4 @@
-from langchain.memory import ConversationBufferMemory
+from langchain_classic.memory import ConversationBufferMemory
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)

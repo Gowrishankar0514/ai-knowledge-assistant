@@ -122,18 +122,27 @@ with st.sidebar:
     st.markdown("###### Web Scraper")
     url_input = st.text_input("Enter URL:")
     if st.button("Extract & Index URL") and url_input:
-        with st.spinner("Crawling structure..."):
-            scraper = WebScraper(base_url=url_input, max_depth=1, max_pages=5)
-            scraper.scrape()
-            docs = scraper.get_documents()
-            chunker = SemanticChunker()
-            chunked = chunker.chunk_documents(docs)
-            if chunked:
-                st.session_state.vector_manager.build_index(chunked)
-                init_system()
-                st.success(f"Indexed {len(chunked)} chunks!")
-            else:
-                st.warning("No readability found.")
+        with st.spinner("Crawling and extracting content..."):
+            try:
+                scraper = WebScraper(base_url=url_input, max_depth=1, max_pages=5)
+                scraper.scrape()
+                docs = scraper.get_documents()
+                
+                if not docs:
+                    st.warning(f"⚠️ Could not extract any text from the URL. The site may be blocking automated access or requires JavaScript rendering.")
+                    st.info(f"Pages visited: {len(scraper.visited)}")
+                else:
+                    st.info(f"📄 Extracted text from {len(docs)} page(s)")
+                    chunker = SemanticChunker()
+                    chunked = chunker.chunk_documents(docs)
+                    if chunked:
+                        st.session_state.vector_manager.build_index(chunked)
+                        init_system()
+                        st.success(f"✅ Indexed {len(chunked)} chunks from {len(docs)} page(s)!")
+                    else:
+                        st.warning("⚠️ Text was extracted but could not be chunked. The content may be too short.")
+            except Exception as e:
+                st.error(f"❌ Error processing URL: {str(e)}")
 
     # Local Files Ingestion
     st.markdown("###### Local Directory")
@@ -184,7 +193,7 @@ if user_question := st.chat_input("Engage with the Cognitive Engine..."):
                 response_text = "I require raw data to function. Please provide a URL or local files inside the ingestion panel."
                 sources_list = []
             else:
-                res = st.session_state.generator.query(user_question)
+                res = st.session_state.generator.query(user_question, st.session_state.chat_history)
                 response_text = res.get("answer", "Processing error.")
                 docs = res.get("source_documents", [])
                 sources_list = list(set([d.metadata.get("source", "Unknown") for d in docs]))

@@ -1,4 +1,4 @@
-from langchain.retrievers import ContextualCompressionRetriever
+from langchain_classic.retrievers.contextual_compression import ContextualCompressionRetriever
 from src.embeddings.vector_store import VectorStoreManager
 from src.retrieval.reranker import RankBM25Reranker
 from src.utils.logger import get_logger

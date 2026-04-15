@@ -1,7 +1,7 @@
 from typing import Sequence
 from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
-from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain_classic.retrievers.document_compressors.base import BaseDocumentCompressor
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)

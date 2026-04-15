@@ -1,7 +1,7 @@
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain.chains import ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate
+from langchain_classic.chains import ConversationalRetrievalChain
+from langchain_classic.prompts import PromptTemplate
 from src.config import Config
 from src.utils.logger import get_logger
 from src.llm.prompts import PERSONAS
@@ -48,7 +48,6 @@ class RAGGenerator:
             self.qa_chain = ConversationalRetrievalChain.from_llm(
                 llm=self.llm,
                 retriever=self.retriever.compression_retriever,
-                memory=self.memory,
                 combine_docs_chain_kwargs={"prompt": self.custom_prompt},
                 return_source_documents=True,
                 verbose=False
@@ -56,14 +55,24 @@ class RAGGenerator:
         else:
             self.qa_chain = None
 
-    def query(self, user_question: str):
+    def query(self, user_question: str, chat_history: list | None = None):
         if not self.qa_chain:
             logger.error("QA chain is not initialized due to missing retriever.")
             return {"answer": "System is not initialized properly. Please ingest data first.", "source_documents": []}
             
         logger.info(f"Generating answer for query: '{user_question}' under persona '{self.current_persona}'")
         try:
-            response = self.qa_chain.invoke({"question": user_question})
+            history_input = []
+            if chat_history:
+                for idx, message in enumerate(chat_history):
+                    if message.get("role") == "user":
+                        assistant_response = ""
+                        for next_msg in chat_history[idx + 1 :]:
+                            if next_msg.get("role") == "assistant":
+                                assistant_response = next_msg.get("content", "")
+                                break
+                        history_input.append((message.get("content", ""), assistant_response))
+            response = self.qa_chain.invoke({"question": user_question, "chat_history": history_input})
             return response
         except Exception as e:
             logger.error(f"Error generating answer: {e}")
